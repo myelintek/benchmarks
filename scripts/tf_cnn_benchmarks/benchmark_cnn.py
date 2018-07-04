@@ -589,7 +589,7 @@ def create_config_proto(params):
   config.allow_soft_placement = True
   config.intra_op_parallelism_threads = params.num_intra_threads
   config.inter_op_parallelism_threads = params.num_inter_threads
-  config.experimental.collective_group_leader = '/job:worker/replica:0/task:0'
+  #config.experimental.collective_group_leader = '/job:worker/replica:0/task:0'
   config.gpu_options.force_gpu_compatible = params.force_gpu_compatible
   if params.allow_growth is not None:
     config.gpu_options.allow_growth = params.allow_growth
@@ -1618,6 +1618,7 @@ class BenchmarkCNN(object):
     else:
       self.single_session = False
       if self.datasets_use_prefetch:
+        tf.logging.info('build_model_with_dataset_prefetching')
         (image_producer_ops, enqueue_ops, fetches) = (
             self._build_model_with_dataset_prefetching())
       else:
@@ -1757,8 +1758,8 @@ class BenchmarkCNN(object):
         global_step=graph_info.global_step,
         summary_op=None,
         save_model_secs=self.params.save_model_secs,
-        summary_writer=summary_writer,
-        local_init_run_options=init_run_options)
+        summary_writer=summary_writer)
+        #local_init_run_options=init_run_options)
 
     step_train_times = []
     start_standard_services = (
@@ -2157,22 +2158,28 @@ class BenchmarkCNN(object):
           self.loss_scale_normal_steps = None
 
     # Build the processing and model for the worker.
-    function_buffering_resources = data_utils.build_prefetch_image_processing(
+    dataloader = data_utils.DataLoader(
         self.model.get_image_size(), self.model.get_image_size(),
         self.batch_size, len(
-            self.devices), self.image_preprocessor.parse_and_preprocess,
+            self.devices),
         self.cpu_device, self.params, self.devices, get_data_type(self.params),
         self.dataset)
+    #function_buffering_resources = data_utils.build_prefetch_image_processing(
+    #    self.model.get_image_size(), self.model.get_image_size(),
+    #    self.batch_size, len(
+    #        self.devices), self.image_preprocessor.parse_and_preprocess,
+    #    self.cpu_device, self.params, self.devices, get_data_type(self.params),
+    #    self.dataset)
 
     update_ops = None
 
     for device_num in range(len(self.devices)):
       with self.variable_mgr.create_outer_variable_scope(
           device_num), tf.name_scope('tower_%i' % device_num) as name_scope:
-        function_buffering_resource = function_buffering_resources[device_num]
+        #function_buffering_resource = function_buffering_resources[device_num]
         results = self.add_forward_pass_and_gradients(
             phase_train, device_num, device_num, None, None, None,
-            function_buffering_resource)
+            dataloader)
         if phase_train:
           losses.append(results['loss'])
           device_grads.append(results['gradvars'])
@@ -2497,15 +2504,16 @@ class BenchmarkCNN(object):
                                      image_producer_stage,
                                      gpu_compute_stage_ops,
                                      gpu_grad_stage_ops,
-                                     function_buffering_resource=None):
+                                     dataloader):
     """Add ops for forward-pass and gradient computations."""
     nclass = self.dataset.num_classes
     data_type = get_data_type(self.params)
     image_size = self.model.get_image_size()
-    if self.datasets_use_prefetch and function_buffering_resource is not None:
+    if self.datasets_use_prefetch:
       with tf.device(self.raw_devices[rel_device_num]):
-        images, labels = data_utils.get_images_and_labels(
-            function_buffering_resource, data_type)
+        images, labels = dataloader.get_images_and_labels(rel_device_num, data_type)
+        #images, labels = data_utils.get_images_and_labels(
+        #    function_buffering_resource, data_type)
         images = tf.reshape(
             images,
             shape=[

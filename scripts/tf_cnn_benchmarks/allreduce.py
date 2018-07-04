@@ -25,7 +25,7 @@ import tensorflow as tf
 from tensorflow.contrib.all_reduce.python import all_reduce
 from tensorflow.python.framework import device as pydev
 from tensorflow.python.framework import ops
-from tensorflow.python.ops import collective_ops
+#from tensorflow.python.ops import collective_ops
 
 AllReduceSpecTuple = pycoll.namedtuple('AllReduceSpecTuple', 'alg shards limit')
 
