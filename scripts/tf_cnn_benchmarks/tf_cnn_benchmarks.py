@@ -24,7 +24,7 @@ from absl import app
 from absl import flags as absl_flags
 import tensorflow as tf
 
-import benchmark_cnn
+import new_benchmark_cnn as benchmark_cnn
 import cnn_util
 import flags
 from cnn_util import log_fn
