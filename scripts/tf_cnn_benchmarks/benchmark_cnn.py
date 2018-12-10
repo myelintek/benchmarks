@@ -1952,6 +1952,10 @@ class BenchmarkCNN(object):
             tf.GraphKeys.GLOBAL_STEP, global_step,
         }
         self.benchmark_logger.log_evaluation_result(eval_result)
+      ## myelintek ##
+      if getattr(self, 'print_eval_results', None):
+        results = {'accuracy': accuracy_at_1}
+        self.print_eval_results(results)
       return accuracy_at_1, accuracy_at_5
 
   def _benchmark_train(self):
@@ -2306,7 +2310,8 @@ class BenchmarkCNN(object):
         fetch_summary = None
       collective_graph_key = 7 if (
           self.params.variable_update == 'collective_all_reduce') else 0
-      (summary_str, last_average_loss) = benchmark_one_step(
+      ## myelintek ##
+      (summary_str, last_average_loss) = self.benchmark_one_step(
           sess, graph_info.fetches, local_step,
           self.batch_size * (self.num_workers
                              if self.single_session else 1), step_train_times,
@@ -2332,6 +2337,11 @@ class BenchmarkCNN(object):
             sess, summary_writer, eval_graph_info.fetches,
             eval_graph_info.summary_op, eval_image_producer,
             python_global_step)
+        ## myelintek ##
+        if getattr(self, 'check_early_stop', None):
+            if self.check_early_stop():
+                # break the loop for early stop
+                break;
         if (self.params.stop_at_top_1_accuracy and
             accuracy_at_1 >= self.params.stop_at_top_1_accuracy):
           log_fn('Stopping, as eval accuracy at least %s was reached' %
@@ -2405,6 +2415,38 @@ class BenchmarkCNN(object):
     if last_average_loss is not None:
       stats['last_average_loss'] = last_average_loss
     return stats
+
+  ## myelintek ##
+  def benchmark_one_step(self,
+                       sess,
+                       fetches,
+                       step,
+                       batch_size,
+                       step_train_times,
+                       trace_filename,
+                       partitioned_graph_file_prefix,
+                       profiler,
+                       image_producer,
+                       params,
+                       summary_op=None,
+                       show_images_per_sec=True,
+                       benchmark_logger=None,
+                       collective_graph_key=0):
+    return benchmark_one_step(
+        sess=sess,
+        fetches=fetches,
+        step=step,
+        batch_size=batch_size,
+        step_train_times=step_train_times,
+        trace_filename=trace_filename,
+        partitioned_graph_file_prefix=partitioned_graph_file_prefix,
+        profiler=profiler,
+        image_producer=image_producer,
+        params=params,
+        summary_op=summary_op,
+        show_images_per_sec=show_images_per_sec,
+        benchmark_logger=benchmark_logger,
+        collective_graph_key=collective_graph_key)
 
   def _should_eval_during_training(self, step):
     """Return True iff should run eval during training at current step."""
@@ -2742,6 +2784,11 @@ class BenchmarkCNN(object):
     fetches = self._build_fetches(global_step, all_logits, losses, device_grads,
                                   enqueue_ops, update_ops, all_accuracy_ops,
                                   phase_train)
+    ## myelintek ##
+    if getattr(self, 'build_fetches_forward', None):
+        self.build_fetches_forward(global_step, all_logits, losses, device_grads,
+                                   enqueue_ops, update_ops, all_accuracy_ops,
+                                   phase_train)
     return (input_producer_op, enqueue_ops, fetches)
 
   def _build_fetches(self, global_step, all_logits, losses, device_grads,
@@ -2843,6 +2890,8 @@ class BenchmarkCNN(object):
 
     fetches['train_op'] = train_op
     fetches['average_loss'] = average_loss
+    ## myelintek ##
+    fetches['learning_rate'] = learning_rate
     return fetches
 
   def gradient_histogram_summary(self, avg_grads):
@@ -3131,6 +3180,10 @@ class BenchmarkCNN(object):
         grads = [
             grad * tf.cast(1. / self.loss_scale, grad.dtype) for grad in grads
         ]
+
+      ## myelintek ##
+      if getattr(self, 'accum_grads', None):
+          grads = self.accum_grads(grads, fp32_params)
 
       if self.params.variable_update == 'horovod':
         import horovod.tensorflow as hvd  # pylint: disable=g-import-not-at-top
