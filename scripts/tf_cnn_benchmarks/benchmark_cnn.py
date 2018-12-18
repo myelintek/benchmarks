@@ -2337,11 +2337,6 @@ class BenchmarkCNN(object):
             sess, summary_writer, eval_graph_info.fetches,
             eval_graph_info.summary_op, eval_image_producer,
             python_global_step)
-        ## myelintek ##
-        if getattr(self, 'check_early_stop', None):
-            if self.check_early_stop():
-                # break the loop for early stop
-                break;
         if (self.params.stop_at_top_1_accuracy and
             accuracy_at_1 >= self.params.stop_at_top_1_accuracy):
           log_fn('Stopping, as eval accuracy at least %s was reached' %
@@ -2350,6 +2345,11 @@ class BenchmarkCNN(object):
           break
         else:
           log_fn('Resuming training')
+      ## myelintek ##
+      if getattr(self, 'check_early_stop', None):
+        if self.check_early_stop():
+          # break the loop for early stop
+          break;
     loop_end_time = time.time()
     # Waits for the global step to be done, regardless of done_fn.
     if global_step_watcher:
