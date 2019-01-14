@@ -294,7 +294,7 @@ flags.DEFINE_string('partitioned_graph_file_prefix', None,
                     'If specified, after the graph has been partitioned and '
                     'optimized, write out each partitioned graph to a file '
                     'with the given prefix.')
-flags.DEFINE_enum('optimizer', 'sgd', ('momentum', 'sgd', 'rmsprop', 'adam'),
+flags.DEFINE_enum('optimizer', 'sgd', ('momentum', 'sgd', 'rmsprop', 'adam', 'lars'),
                   'Optimizer to use')
 flags.DEFINE_float('init_learning_rate', None,
                    'Initial learning rate for training.')
@@ -1182,6 +1182,9 @@ def get_optimizer(params, learning_rate):
   elif params.optimizer == 'adam':
     opt = tf.train.AdamOptimizer(learning_rate, params.adam_beta1,
                                  params.adam_beta2, params.adam_epsilon)
+  ## myelintek ##
+  elif params.optimizer == 'lars':
+    opt = tf.contrib.opt.LARSOptimizer(learning_rate, params.momentum)
   else:
     raise ValueError('Optimizer "%s" was not recognized',
                      params.optimizer)
