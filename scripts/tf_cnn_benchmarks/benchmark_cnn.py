@@ -157,7 +157,7 @@ flags.DEFINE_boolean('freeze_when_forward_only', False,
 flags.DEFINE_boolean('print_training_accuracy', False,
                      'whether to calculate and print training accuracy during '
                      'training')
-flags.DEFINE_integer('batch_size', 0, 'batch size per compute device')
+flags.DEFINE_integer('batch_size', 32, 'batch size per compute device')
 flags.DEFINE_integer('batch_group_size', 1,
                      'number of groups of batches processed in the image '
                      'producer.')
@@ -166,7 +166,7 @@ flags.DEFINE_integer('num_batches', None, 'number of batches to run, excluding '
 flags.DEFINE_integer('num_eval_batches', None,
                      'number of eval batches to run, excluding warmup. '
                      'Defaults to --num_batches')
-flags.DEFINE_float('num_epochs', None,
+flags.DEFINE_float('num_epochs', 10.,
                    'number of epochs to run, excluding warmup. '
                    'This and --num_batches cannot both be specified.')
 flags.DEFINE_float('num_eval_epochs', None,
@@ -258,7 +258,7 @@ flags.DEFINE_enum('local_parameter_device', 'gpu', ('cpu', 'gpu', 'CPU', 'GPU'),
                   'variables happens.')
 flags.DEFINE_enum('device', 'gpu', ('cpu', 'gpu', 'CPU', 'GPU'),
                   'Device to use for computation: cpu or gpu')
-flags.DEFINE_enum('data_format', 'NCHW', ('NHWC', 'NCHW'),
+flags.DEFINE_enum('data_format', 'NHWC', ('NHWC', 'NCHW'),
                   'Data layout to use: NHWC (TF native) or NCHW (cuDNN '
                   'native, requires GPU).')
 flags.DEFINE_integer('num_intra_threads', None,
@@ -298,7 +298,7 @@ flags.DEFINE_enum('optimizer', 'sgd', ('momentum', 'sgd', 'rmsprop', 'adam', 'la
                   'Optimizer to use')
 flags.DEFINE_float('init_learning_rate', None,
                    'Initial learning rate for training.')
-flags.DEFINE_string('piecewise_learning_rate_schedule', None,
+flags.DEFINE_string('piecewise_learning_rate_schedule', '0.1;3;0.01;6;0.001',
                     'Specifies a piecewise learning rate schedule based on the '
                     'number of epochs. This is the form LR0;E1;LR1;...;En;LRn, '
                     'where each LRi is a learning rate and each Ei is an epoch '
@@ -408,7 +408,7 @@ flags.DEFINE_boolean('staged_vars', False,
                      'computation')
 flags.DEFINE_boolean('force_gpu_compatible', False,
                      'whether to enable force_gpu_compatible in GPU_Options')
-flags.DEFINE_boolean('allow_growth', None,
+flags.DEFINE_boolean('allow_growth', True,
                      'whether to enable allow_growth in GPU_Options')
 flags.DEFINE_boolean('xla', False, 'whether to enable XLA auto-jit compilation')
 flags.DEFINE_boolean('xla_compile', False,
